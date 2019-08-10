@@ -1,0 +1,57 @@
+---
+resources:
+  - name: repo
+    type: git
+    source:
+      uri: https://github.com/Shouperman/concourse-tutorial.git
+      branch: tinker
+
+  # Emit on the interval
+  - name: timer
+    type: time
+    source:
+      interval: 60s
+
+groups:
+  - name: test
+    jobs:
+      - hello
+      - interval
+
+jobs:
+  - name: interval
+    public: true
+    serial: true
+    plan:
+      - get: timer
+        trigger: true
+      - get: repo
+      - task: echo-time
+        file: repo/tutorials/basic/dual-trigger/copy-time.yml
+      - task: list-all
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: busybox }
+          inputs:
+            - name: repo
+            - name: timer
+          outputs:
+            - name: taco
+          run:
+            path: ls
+            args: ["-lah"]
+
+
+  - name: hello
+    public: true
+    serial: true
+    plan:
+      - get: repo
+      - get: timer
+        trigger: true
+      # - get: manual
+      #   trigger: true
+      - task: hello-world
+        file: repo/tutorials/basic/task-hello-world/task_hello_world.yml
